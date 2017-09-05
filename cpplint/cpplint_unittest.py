@@ -1316,6 +1316,80 @@ class CpplintTest(CpplintTestBase):
           };""",
           'Single-parameter constructors should be marked explicit.'
           '  [runtime/explicit] [5]')
+      # missing explicit for constexpr constructors is bad as well
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            constexpr Foo(int f);
+          };""",
+          'Single-parameter constructors should be marked explicit.'
+          '  [runtime/explicit] [5]')
+      # missing explicit for constexpr+inline constructors is bad as well
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            constexpr inline Foo(int f);
+          };""",
+          'Single-parameter constructors should be marked explicit.'
+          '  [runtime/explicit] [5]')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            inline constexpr Foo(int f);
+          };""",
+          'Single-parameter constructors should be marked explicit.'
+          '  [runtime/explicit] [5]')
+      # explicit with inline is accepted
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            inline explicit Foo(int f);
+          };""",
+          '')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            explicit inline Foo(int f);
+          };""",
+          '')
+      # explicit with constexpr is accepted
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            constexpr explicit Foo(int f);
+          };""",
+          '')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            explicit constexpr Foo(int f);
+          };""",
+          '')
+      # explicit with constexpr+inline is accepted
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            inline constexpr explicit Foo(int f);
+          };""",
+          '')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            explicit inline constexpr Foo(int f);
+          };""",
+          '')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            constexpr inline explicit Foo(int f);
+          };""",
+          '')
+      self.TestMultiLineLint(
+          """
+          class Foo {
+            explicit constexpr inline Foo(int f);
+          };""",
+          '')
       # structs are caught as well.
       self.TestMultiLineLint(
           """
@@ -1897,74 +1971,6 @@ class CpplintTest(CpplintTestBase):
            ''],
           error_collector)
       self.assertEquals('', error_collector.Results())
-
-  # DISALLOW* macros should be in the private: section.
-  def testMisplacedDisallowMacros(self):
-    for macro_name in (
-        'DISALLOW_COPY_AND_ASSIGN',
-        'DISALLOW_IMPLICIT_CONSTRUCTORS'):
-      self.TestMultiLineLint(
-          """
-          class A {'
-           public:
-            %s(A);
-          };""" % macro_name,
-          ('%s must be in the private: section' % macro_name) +
-          '  [readability/constructors] [3]')
-
-      self.TestMultiLineLint(
-          """
-          struct B {'
-            %s(B);
-          };""" % macro_name,
-          ('%s must be in the private: section' % macro_name) +
-          '  [readability/constructors] [3]')
-
-      self.TestMultiLineLint(
-          """
-          class Outer1 {'
-           private:
-            struct Inner1 {
-              %s(Inner1);
-            };
-            %s(Outer1);
-          };""" % (macro_name, macro_name),
-          ('%s must be in the private: section' % macro_name) +
-          '  [readability/constructors] [3]')
-
-      self.TestMultiLineLint(
-          """
-          class Outer2 {'
-           private:
-            class Inner2 {
-              %s(Inner2);
-            };
-            %s(Outer2);
-          };""" % (macro_name, macro_name),
-          '')
-    # Extra checks to make sure that nested classes are handled
-    # correctly.  Use different macros for inner and outer classes so
-    # that we can tell the error messages apart.
-    self.TestMultiLineLint(
-        """
-        class Outer3 {
-          struct Inner3 {
-            DISALLOW_COPY_AND_ASSIGN(Inner3);
-          };
-          DISALLOW_IMPLICIT_CONSTRUCTORS(Outer3);
-        };""",
-        ('DISALLOW_COPY_AND_ASSIGN must be in the private: section'
-         '  [readability/constructors] [3]'))
-    self.TestMultiLineLint(
-        """
-        struct Outer4 {
-          class Inner4 {
-            DISALLOW_COPY_AND_ASSIGN(Inner4);
-          };
-          DISALLOW_IMPLICIT_CONSTRUCTORS(Outer4);
-        };""",
-        ('DISALLOW_IMPLICIT_CONSTRUCTORS must be in the private: section'
-         '  [readability/constructors] [3]'))
 
   # Brace usage
   def testBraces(self):
